@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Etiquetas Los Tatos – Niimbot B1 (50x30 mm)</title>
+<meta name="theme-color" content="#1f4e79">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="logo.js"></script>
+<script src="niimbluelib.min.js"></script>
+<style>
+:root{--azul:#1f4e79;--borde:#d0d7de}
+*{box-sizing:border-box}
+body{font-family:system-ui,"Segoe UI",Arial,sans-serif;margin:0;background:#f4f6f8;color:#222}
+header{background:var(--azul);color:#fff;padding:12px 20px}
+header h1{margin:0;font-size:20px}
+main{display:grid;grid-template-columns:minmax(320px,460px) 1fr;gap:20px;padding:20px;max-width:1200px;margin:auto}
+@media(max-width:820px){main{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:20px}
+.card{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:16px}
+.card h2{margin:0 0 8px;font-size:16px;color:var(--azul)}
+label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+input,select{width:100%;padding:8px;border:1px solid var(--borde);border-radius:6px;font-size:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inline{display:flex;gap:8px}.inline input{flex:1}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+button{padding:9px 14px;border:0;border-radius:6px;background:#e7ecf1;cursor:pointer;font-size:14px;font-weight:600}
+button.primary{background:var(--azul);color:#fff}
+button.big{font-size:16px;padding:12px 20px}
+button.danger{background:#fde2e1;color:#a40e0e}
+#preview{width:100%;max-width:600px;image-rendering:pixelated;border:1px dashed #999;background:#fff;display:block}
+.hint{font-size:12px;color:#666;margin-top:6px;line-height:1.4}
+.err{color:#b00020;font-size:12px;min-height:16px;margin-top:4px}
+#printArea{display:none}
+@page{size:50mm 30mm;margin:0}
+@media print{
+  body{background:#fff}
+  header,main{display:none!important}
+  #printArea{display:block}
+  .page{width:50mm;height:30mm;overflow:hidden;page-break-after:always;break-after:page}
+  .page:last-child{page-break-after:auto;break-after:auto}
+  .page img{width:50mm;height:30mm;display:block}
+}
+</style>
+</head>
+<body>
+<header><h1>🐄 Los Tatos · Etiquetas Niimbot B1 (50 × 30 mm)</h1></header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <h2>1. Producto</h2>
+      <label for="selProd">Producto guardado</label>
+      <select id="selProd"></select>
+
+      <label for="nombre">Nombre del producto</label>
+      <input id="nombre" maxlength="60">
+
+      <div class="row">
+        <div><label for="presentacion">Presentación</label><input id="presentacion" placeholder="500 g"></div>
+        <div><label for="dias">Vida útil (días)</label><input id="dias" type="number" min="0" value="15"></div>
+      </div>
+
+      <label for="nota">Nota (opcional)</label>
+      <input id="nota" placeholder="Mantener refrigerado 0-4 °C" maxlength="45">
+
+      <label for="ean">Código de barras EAN-13 (12 o 13 dígitos)</label>
+      <div class="inline"><input id="ean" inputmode="numeric" maxlength="13"><button id="btnGen" type="button">Generar</button></div>
+      <div class="err" id="eanErr"></div>
+
+      <div class="btns">
+        <button class="primary" id="btnGuardar">💾 Guardar producto</button>
+        <button id="btnNuevo">➕ Nuevo</button>
+        <button class="danger" id="btnEliminar">🗑 Eliminar</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Lote y fechas</h2>
+      <div class="row">
+        <div><label for="fab">Fecha de fabricación</label><input id="fab" type="date"></div>
+        <div><label for="ven">Fecha de vencimiento</label><input id="ven" type="date"></div>
+      </div>
+      <div class="row">
+        <div><label for="lote">Lote</label><input id="lote" maxlength="16"></div>
+        <div><label for="copias">Copias</label><input id="copias" type="number" min="1" max="500" value="1"></div>
+      </div>
+      <p class="hint">El lote y el vencimiento se calculan solos con la fecha de fabricación y la vida útil. Puedes escribirlos a mano.</p>
+    </section>
+
+    <section class="card">
+      <h2>⚙️ Ajustes</h2>
+      <label for="prefijo">Prefijo para generar códigos</label>
+      <input id="prefijo" inputmode="numeric" maxlength="11">
+      <p class="hint">Para vender en supermercados usa el <b>prefijo de empresa que te asigne GS1</b> en tu país. Mientras tanto, "200" sirve para uso interno.</p>
+      <div class="btns">
+        <label class="hint" style="margin:0">Cambiar logo: <input type="file" id="fileLogo" accept="image/*" style="width:auto"></label>
+        <button id="btnLogoReset">Logo original</button>
+      </div>
+      <div class="btns">
+        <button id="btnExport">⬇ Exportar productos</button>
+        <label style="margin:0"><button type="button" onclick="document.getElementById('fileImport').click()">⬆ Importar productos</button>
+        <input type="file" id="fileImport" accept=".json" hidden></label>
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card">
+      <h2>📶 Impresora Bluetooth (Niimbot B1)</h2>
+      <div id="btStatus" class="hint" style="font-size:14px">⚪ Desconectada</div>
+      <div class="btns">
+        <button class="primary big" id="btnConectar">🔗 Conectar impresora</button>
+        <button id="btnDesconectar" disabled>Desconectar</button>
+      </div>
+      <div class="row">
+        <div><label for="densidad">Oscuridad (1–5)</label>
+          <select id="densidad"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
+        <div><label for="direccion">Orientación</label>
+          <select id="direccion"><option value="top">Normal</option><option value="left">Girada 90°</option></select></div>
+      </div>
+      <div class="btns"><button class="primary big" id="btnBtPrint" disabled>🖨 Imprimir por Bluetooth</button></div>
+      <div class="err" id="btErr"></div>
+      <p class="hint">Usa <b>Chrome en Android</b> con Bluetooth y ubicación activados. La impresora debe estar encendida y <b>no</b> conectada a la app Niimbot.</p>
+    </section>
+
+    <section class="card">
+      <h2>Vista previa (tamaño real de impresión: 400 × 240 px a 203 dpi)</h2>
+      <canvas id="preview" width="400" height="240"></canvas>
+      <div class="btns">
+        <button class="primary big" id="btnPrint">🖨 Imprimir</button>
+        <button class="big" id="btnPng">🖼 Descargar PNG</button>
+      </div>
+      <p class="hint">
+        <b>PC con driver Niimbot B1:</b> en el diálogo de impresión elige la impresora B1, papel 50×30 mm, márgenes "Ninguno" y escala 100 %.<br>
+        <b>Celular (app Niimbot):</b> descarga el PNG, crea una etiqueta 50×30 en la app e inserta la imagen ajustada a toda la etiqueta.
+      </p>
+    </section>
+  </div>
+</main>
+
+<div id="printArea"></div>
+
+<script>
+'use strict';
+const W = 400, H = 240;               // 50x30 mm @ 8 px/mm (203 dpi)
+const $ = id => document.getElementById(id);
+const KEY = 'lostatos_productos_v1', KEYCFG = 'lostatos_cfg_v1';
+
+let cfg = JSON.parse(localStorage.getItem(KEYCFG) || 'null') || { prefijo: '200', sec: 0, logo: null };
+let productos = JSON.parse(localStorage.getItem(KEY) || 'null') || [
+  { id: 1, nombre: 'Queso Fresco',          presentacion: '500 g', nota: 'Mantener refrigerado 0-4 °C', ean: '', dias: 15 },
+  { id: 2, nombre: 'Yogur Griego Natural',  presentacion: '1 kg',  nota: 'Mantener refrigerado 0-4 °C', ean: '', dias: 21 },
+  { id: 3, nombre: 'Heladito de Fresa',     presentacion: '80 ml', nota: 'Mantener congelado -18 °C',   ean: '', dias: 90 }
+];
+let actualId = null, loteManual = false, venManual = false;
+
+/* ---------- EAN-13 ---------- */
+const L = ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
+const R = L.map(s => [...s].map(b => b === '1' ? '0' : '1').join(''));
+const G = R.map(s => [...s].reverse().join(''));
+const PAR = ['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+function checkDigit(d12){ let s = 0; for (let i = 0; i < 12; i++) s += (+d12[i]) * (i % 2 ? 3 : 1); return (10 - s % 10) % 10; }
+function normEAN(v){
+  v = (v || '').replace(/\D/g, '');
+  if (v.length === 12) return v + checkDigit(v);
+  if (v.length === 13 && checkDigit(v.slice(0, 12)) === +v[12]) return v;
+  return null;
+}
+function eanBits(e){
+  const f = +e[0]; let b = '101';
+  for (let i = 1; i <= 6; i++) b += (PAR[f][i - 1] === 'L' ? L : G)[+e[i]];
+  b += '01010';
+  for (let i = 7; i <= 12; i++) b += R[+e[i]];
+  return b + '101';
+}
+function generarEAN(){
+  const base = (cfg.prefijo || '200').replace(/\D/g, '');
+  if (base.length >= 12) { alert('El prefijo es demasiado largo.'); return null; }
+  const usados = new Set(productos.map(p => normEAN(p.ean)));
+  let e;
+  do { cfg.sec++; const body = base + String(cfg.sec).padStart(12 - base.length, '0'); e = body + checkDigit(body); }
+  while (usados.has(e));
+  guardarCfg();
+  return e;
+}
+
+/* ---------- Fechas ---------- */
+const pad = n => String(n).padStart(2, '0');
+const isoLocal = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function addDays(s, n){ const [y, m, d] = s.split('-').map(Number); return isoLocal(new Date(y, m - 1, d + n)); }
+function fmt(s){ if (!s) return '--/--/----'; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; }
+function loteAuto(s){ if (!s) return ''; const [y, m, d] = s.split('-'); return 'L' + y.slice(2) + m + d; }
+
+/* ---------- Logo (recortado y en blanco/negro) ---------- */
+let logoCanvas = null;
+function cargarLogo(src){
+  logoCanvas = null;
+  if (!src) { render(); return; }
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0);
+    const p = x.getImageData(0, 0, c.width, c.height).data;
+    let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0;
+    for (let y = 0; y < c.height; y++) for (let i = 0; i < c.width; i++) {
+      const k = (y * c.width + i) * 4;
+      if (p[k] * 0.3 + p[k + 1] * 0.59 + p[k + 2] * 0.11 < 200) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 <= x0) { x0 = 0; y0 = 0; x1 = c.width - 1; y1 = c.height - 1; }
+    const out = document.createElement('canvas'); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+    out.getContext('2d').drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+    logoCanvas = out; render();
+  };
+  img.onerror = () => render();
+  img.src = src;
+}
+
+/* ---------- Texto ---------- */
+function wrap(ctx, text, maxW){
+  const words = text.split(/\s+/).filter(Boolean), lines = []; let cur = '';
+  for (const w of words) { const t = cur ? cur + ' ' + w : w; if (!cur || ctx.measureText(t).width <= maxW) cur = t; else { lines.push(cur); cur = w; } }
+  if (cur) lines.push(cur); return lines;
+}
+function fitLines(ctx, text, maxW, maxH, maxLines, maxSize, minSize){
+  for (let s = maxSize; s >= minSize; s--) {
+    ctx.font = `bold ${s}px Arial`;
+    const ls = wrap(ctx, text, maxW);
+    if (ls.length <= maxLines && ls.every(l => ctx.measureText(l).width <= maxW) && ls.length * s * 1.05 <= maxH) return { size: s, lines: ls };
+  }
+  ctx.font = `bold ${minSize}px Arial`;
+  return { size: minSize, lines: wrap(ctx, text, maxW).slice(0, maxLines) };
+}
+function fit1(ctx, texts, maxW, maxSize, minSize){
+  for (let s = maxSize; s > minSize; s--) { ctx.font = `bold ${s}px Arial`; if (texts.every(t => ctx.measureText(t).width <= maxW)) return s; }
+  ctx.font = `bold ${minSize}px Arial`; return minSize;
+}
+
+/* ---------- Render de la etiqueta ---------- */
+function datos(){
+  return {
+    nombre: $('nombre').value.trim() || 'PRODUCTO',
+    presentacion: $('presentacion').value.trim(),
+    nota: $('nota').value.trim(),
+    ean: normEAN($('ean').value),
+    lote: $('lote').value.trim(),
+    fab: $('fab').value, ven: $('ven').value
+  };
+}
+function render(){
+  const c = $('preview'), x = c.getContext('2d'), d = datos();
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.fillStyle = '#000'; x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+
+  // Logo 104x104 arriba-izquierda
+  if (logoCanvas) {
+    const s = Math.min(104 / logoCanvas.width, 104 / logoCanvas.height), w = logoCanvas.width * s, h = logoCanvas.height * s;
+    x.imageSmoothingQuality = 'high'; x.drawImage(logoCanvas, 12 + (104 - w) / 2, 6 + (104 - h) / 2, w, h);
+  }
+
+  // Nombre / presentación / nota
+  const tx = 124, tw = W - tx - 12;
+  const presH = d.presentacion ? 26 : 0, notaH = d.nota ? 18 : 0, nameH = 108 - presH - notaH;
+  const nf = fitLines(x, d.nombre.toUpperCase(), tw, nameH, 2, 36, 14);
+  const lh = nf.size * 1.05, ny = 6 + (nameH - nf.lines.length * lh) / 2;
+  x.font = `bold ${nf.size}px Arial`;
+  nf.lines.forEach((l, i) => x.fillText(l, tx, ny + lh * i + nf.size * 0.85));
+  let y = 6 + nameH;
+  if (d.presentacion) { fit1(x, [d.presentacion], tw, 24, 12); x.fillText(d.presentacion, tx, y + 21); y += presH; }
+  if (d.nota) { const s = fit1(x, [d.nota], tw, 15, 9); x.font = `${s}px Arial`; x.fillText(d.nota, tx, y + 14); }
+
+  // Separador
+  x.fillRect(12, 115, W - 24, 2);
+
+  // Código de barras (módulo 2 px = 0,25 mm; zonas mudas 11/7 módulos)
+  const m = 2, bx = W - 12 - 113 * m, start = bx + 11 * m;
+  if (d.ean) {
+    const bits = eanBits(d.ean);
+    for (let k = 0; k < 95; k++) if (bits[k] === '1') {
+      const guard = k < 3 || (k >= 45 && k < 50) || k >= 92;
+      x.fillRect(start + k * m, 122, m, guard ? 102 : 90);
+    }
+    x.font = 'bold 15px Arial'; x.textAlign = 'center';
+    x.fillText(d.ean[0], start - 9, 237);
+    for (let i = 1; i <= 6; i++) x.fillText(d.ean[i], start + (3 + 7 * (i - 1) + 3.5) * m, 237);
+    for (let i = 7; i <= 12; i++) x.fillText(d.ean[i], start + (50 + 7 * (i - 7) + 3.5) * m, 237);
+    x.textAlign = 'left';
+    $('eanErr').textContent = '';
+  } else {
+    x.font = 'bold 14px Arial'; x.fillText('SIN CÓDIGO', bx + 60, 180);
+    $('eanErr').textContent = $('ean').value ? 'Código inválido: revisa los dígitos (el último es de control).' : 'Escribe 12 dígitos o pulsa "Generar".';
+  }
+
+  // Lote y fechas
+  const filas = ['Lote: ' + (d.lote || '-'), 'Elab: ' + fmt(d.fab), 'Vence: ' + fmt(d.ven)];
+  fit1(x, filas, bx - 16, 22, 10);
+  filas.forEach((t, i) => x.fillText(t, 12, 146 + i * 34));
+
+  // Umbral a blanco/negro puro (lo que ves es lo que imprime la térmica)
+  const im = x.getImageData(0, 0, W, H), p = im.data;
+  for (let i = 0; i < p.length; i += 4) { const v = (p[i] * 0.3 + p[i + 1] * 0.59 + p[i + 2] * 0.11) < 150 ? 0 : 255; p[i] = p[i + 1] = p[i + 2] = v; p[i + 3] = 255; }
+  x.putImageData(im, 0, 0);
+}
+
+/* ---------- Productos ---------- */
+const guardarProd = () => localStorage.setItem(KEY, JSON.stringify(productos));
+function guardarCfg(){
+  try { localStorage.setItem(KEYCFG, JSON.stringify(cfg)); }
+  catch (e) { alert('No se pudo guardar el logo (imagen muy pesada). Usa una imagen más pequeña.'); cfg.logo = null; localStorage.setItem(KEYCFG, JSON.stringify(cfg)); }
+}
+function llenarSelect(){
+  $('selProd').innerHTML = productos.map(p => `<option value="${p.id}">${p.nombre} – ${p.presentacion}</option>`).join('') + '<option value="">(nuevo producto)</option>';
+  $('selProd').value = actualId ?? '';
+}
+function cargarProducto(id){
+  const p = productos.find(q => q.id === id);
+  actualId = p ? p.id : null;
+  $('nombre').value = p?.nombre || ''; $('presentacion').value = p?.presentacion || '';
+  $('nota').value = p?.nota || ''; $('ean').value = p?.ean || ''; $('dias').value = p?.dias ?? 15;
+  venManual = false; recalcular(); llenarSelect();
+}
+function recalcular(){
+  const fab = $('fab').value;
+  if (fab && !venManual) $('ven').value = addDays(fab, +$('dias').value || 0);
+  if (!loteManual) $('lote').value = loteAuto(fab);
+  render();
+}
+
+/* ---------- Imprimir / PNG ---------- */
+function nombreArchivo(){ const d = datos(); return `${d.nombre}_${d.presentacion}_${d.lote}`.replace(/[^\w\-]+/g, '_') + '.png'; }
+function imprimir(){
+  if (!datos().ean && !confirm('La etiqueta no tiene código de barras válido. ¿Imprimir igual?')) return;
+  const url = $('preview').toDataURL('image/png');
+  const n = Math.max(1, Math.min(500, parseInt($('copias').value) || 1));
+  const pa = $('printArea'); pa.innerHTML = '';
+  for (let i = 0; i < n; i++) { const pg = document.createElement('div'); pg.className = 'page'; const im = new Image(); im.src = url; pg.appendChild(im); pa.appendChild(pg); }
+  setTimeout(() => window.print(), 200);
+}
+function descargarPNG(){
+  $('preview').toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = nombreArchivo(); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); });
+}
+
+/* ---------- Bluetooth (niimbluelib) ---------- */
+const NB = window.niimbluelib;
+let bt = null;
+function btUI(conectado, texto){
+  $('btStatus').textContent = texto || (conectado ? '🟢 Conectada' : '⚪ Desconectada');
+  $('btnConectar').disabled = conectado; $('btnDesconectar').disabled = !conectado; $('btnBtPrint').disabled = !conectado;
+}
+async function conectarBT(){
+  $('btErr').textContent = '';
+  if (!navigator.bluetooth) { $('btErr').textContent = 'Este navegador no permite Bluetooth. Usa Chrome en Android y abre la app desde su enlace https.'; return; }
+  if (!NB) { $('btErr').textContent = 'No se cargó la librería de la impresora.'; return; }
+  try {
+    if (bt) { try { await bt.disconnect(); } catch {} }
+    bt = NB.instantiateClient('bluetooth');
+    bt.on('disconnect', () => btUI(false));
+    bt.on('printprogress', e => btUI(true, `🖨 Imprimiendo ${e.page}/${e.pagesTotal} (${e.pagePrintProgress}%)`));
+    btUI(false, '🔄 Conectando…');
+    await bt.connect();
+    const meta = bt.getModelMetadata?.();
+    if (meta?.printDirection) $('direccion').value = meta.printDirection;
+    btUI(true, `🟢 Conectada: ${meta?.model || 'Niimbot'}`);
+  } catch (e) { bt = null; btUI(false); $('btErr').textContent = 'No se pudo conectar: ' + (e.message || e); }
+}
+function canvasParaImpresora(){
+  const src = $('preview'), dir = $('direccion').value;
+  const head = bt?.getModelMetadata?.()?.printheadPixels || 384;
+  const ancho = dir === 'top' ? Math.min(W, head) : W;      // en "top" el ancho va a lo largo del cabezal
+  if (ancho === W) return src;
+  const c = document.createElement('canvas'); c.width = ancho; c.height = H;
+  c.getContext('2d').drawImage(src, (W - ancho) / 2, 0, ancho, H, 0, 0, ancho, H);
+  return c;
+}
+async function imprimirBT(){
+  if (!bt) return;
+  if (!datos().ean && !confirm('La etiqueta no tiene código de barras válido. ¿Imprimir igual?')) return;
+  const n = Math.max(1, Math.min(500, parseInt($('copias').value) || 1));
+  const pageColor = NB.PageColorType?.SingleColor ?? 0;
+  const encoded = NB.ImageEncoder.encodeCanvas(canvasParaImpresora(), pageColor, $('direccion').value);
+  const task = (bt.protocol || bt.abstraction).newPrintTask(bt.getPrintTaskType?.() || 'B1', {
+    totalPages: n, statusPollIntervalMs: 100, statusTimeoutMs: 8000, density: +$('densidad').value, pageColor
+  });
+  $('btnBtPrint').disabled = true; $('btErr').textContent = '';
+  try {
+    await task.printInit();
+    await task.printPage(encoded, n);
+    if (task.waitForPageFinished) await task.waitForPageFinished();
+    await task.waitForFinished();
+    btUI(true, `✅ ${n} etiqueta(s) impresa(s)`);
+  } catch (e) { $('btErr').textContent = 'Error al imprimir: ' + (e.message || e); }
+  finally { try { await task.printEnd(); } catch {} $('btnBtPrint').disabled = !bt; }
+}
+$('btnConectar').onclick = conectarBT;
+$('btnDesconectar').onclick = async () => { try { await bt?.disconnect(); } catch {} bt = null; btUI(false); };
+$('btnBtPrint').onclick = imprimirBT;
+$('densidad').value = cfg.densidad || 3;
+$('densidad').onchange = () => { cfg.densidad = +$('densidad').value; guardarCfg(); };
+
+/* ---------- Eventos ---------- */
+$('selProd').onchange = e => cargarProducto(e.target.value ? +e.target.value : null);
+['nombre', 'presentacion', 'nota', 'ean'].forEach(id => $(id).addEventListener('input', render));
+$('dias').addEventListener('input', () => { venManual = false; recalcular(); });
+$('fab').addEventListener('input', recalcular);
+$('ven').addEventListener('input', () => { venManual = true; render(); });
+$('lote').addEventListener('input', () => { loteManual = $('lote').value !== ''; render(); });
+$('btnGen').onclick = () => { const e = generarEAN(); if (e) { $('ean').value = e; render(); } };
+$('btnNuevo').onclick = () => cargarProducto(null);
+$('btnGuardar').onclick = () => {
+  const ean = normEAN($('ean').value);
+  if (!$('nombre').value.trim()) return alert('Escribe el nombre del producto.');
+  if ($('ean').value && !ean) return alert('El código de barras no es válido.');
+  if (ean && productos.some(p => p.id !== actualId && normEAN(p.ean) === ean)) return alert('Ese código ya lo usa otro producto. Cada producto/presentación necesita su propio código.');
+  const data = { nombre: $('nombre').value.trim(), presentacion: $('presentacion').value.trim(), nota: $('nota').value.trim(), ean: ean || '', dias: +$('dias').value || 0 };
+  if (actualId != null) Object.assign(productos.find(p => p.id === actualId), data);
+  else { actualId = Math.max(0, ...productos.map(p => p.id)) + 1; productos.push({ id: actualId, ...data }); }
+  $('ean').value = data.ean; guardarProd(); llenarSelect(); render();
+};
+$('btnEliminar').onclick = () => {
+  if (actualId == null) return;
+  const p = productos.find(q => q.id === actualId);
+  if (!confirm(`¿Eliminar "${p.nombre} – ${p.presentacion}"?`)) return;
+  productos = productos.filter(q => q.id !== actualId); guardarProd(); cargarProducto(productos[0]?.id ?? null);
+};
+$('prefijo').addEventListener('change', () => { cfg.prefijo = $('prefijo').value.replace(/\D/g, ''); cfg.sec = 0; guardarCfg(); });
+$('fileLogo').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => { cfg.logo = r.result; guardarCfg(); cargarLogo(cfg.logo); }; r.readAsDataURL(f);
+};
+$('btnLogoReset').onclick = () => { cfg.logo = null; guardarCfg(); cargarLogo(window.LOGO_DATA); };
+$('btnExport').onclick = () => {
+  const b = new Blob([JSON.stringify({ productos, prefijo: cfg.prefijo, sec: cfg.sec }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'productos_los_tatos.json'; a.click();
+};
+$('fileImport').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(t => {
+    try { const j = JSON.parse(t); if (!Array.isArray(j.productos)) throw 0;
+      productos = j.productos; if (j.prefijo) cfg.prefijo = j.prefijo; if (j.sec) cfg.sec = j.sec;
+      guardarProd(); guardarCfg(); $('prefijo').value = cfg.prefijo; cargarProducto(productos[0]?.id ?? null);
+    } catch { alert('Archivo no válido.'); }
+  });
+};
+$('btnPrint').onclick = imprimir;
+$('btnPng').onclick = descargarPNG;
+
+/* ---------- Inicio ---------- */
+productos.forEach(p => { if (!normEAN(p.ean)) p.ean = generarEAN() || ''; });
+guardarProd();
+$('prefijo').value = cfg.prefijo;
+$('fab').value = isoLocal(new Date());
+cargarProducto(productos[0]?.id ?? null);
+cargarLogo(cfg.logo || window.LOGO_DATA);
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
